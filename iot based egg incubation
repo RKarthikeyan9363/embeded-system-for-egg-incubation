@@ -1,0 +1,84 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include <DHT.h>
+#include <EMailSender.h> 
+
+const char* ssid = "Galaxy S23 Ultra";
+const char* password = "87654321";
+
+const int GasSensor = 0;
+const int DHT_PIN = 18;
+const int DHT_TYPE = DHT11;
+
+WebServer server(80);
+DHT dht(DHT_PIN, DHT_TYPE);
+
+#define emailSenderAddress  "vikash106118@gmail.com"
+#define emailSenderPassword  "Vikash@621321106118"
+#define emailRecipient  "karthikeyan18333@gmail.com" 
+
+EMailSender emailSender("smtp.gmail.com", emailSenderPassword, emailSenderAddress, "smtp.sendgrid.net", 25);
+
+
+void handleRoot() {
+  float temperature = dht.readTemperature();
+  float Gas = analogRead(GasSensor);
+
+  
+
+  String html = "<html><head>";
+  html += "<meta http-equiv=\"refresh\" content=\"10\">";
+  html += "<style>";
+  html += "body { font-family: Arial, sans-serif; text-align: center; background-color: #f2f2f2; margin: 0px;}";
+  html += "h1 { color: #333; background-color: white; width: 100%; top: 0px; box-shadow: 2px 2px 10px gray; margin: 0px; border: 0px; padding: 10px;}";
+  html += ".karthikeyan, .RE { margin: 10px; padding: 50px 0px; background-color: #555; color: white; width: 100%; border-radius: 10px; text-align: center;}";
+  html += ".box{ margin: 10px; }";
+  html += "</style>";
+  html += "</head><body><h1>EGG INCUBATION</h1>";
+  html += "<div class=\"karthikeyan\"> ";
+  html += Serial.readStringUntil('C');
+  delay(200);
+  html += "</div>";
+  html += "<div class=\"RE\"> ";
+  html += Serial.readStringUntil('M');
+  delay(200);
+  html += "</div>";
+  html += "<div class=\"box\"> ";
+  html += Serial.readStringUntil('B');
+  if (html.indexOf('B') != -1) {
+    sendEmailAlert();
+  }
+  delay(200);
+  html += "</div>";
+  html += "</body></html>";
+  server.send(200, "text/html", html);
+}
+
+// Function to send email alert
+void sendEmailAlert() {
+  emailSender.sendEmailAlert(emailSenderAddress, emailRecipient, "Alert from Gas Sensor", "Gas sensor triggered!");
+}
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi...");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected to WiFi network");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  pinMode(GasSensor, INPUT);
+
+  server.on("/", handleRoot);
+  server.begin();
+}
+
+void loop() {
+  server.handleClient();
+}
